@@ -1,0 +1,74 @@
+import React, { useState } from "react";
+import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
+import axios from "axios";
+
+const containerStyle = {
+  width: "100%",
+  height: "500px",
+};
+
+const center = {
+  lat: 16.1,
+  lng: 81.5,
+};
+
+function App() {
+  const [longitude, setLongitude] = useState("");
+  const [latitude, setLatitude] = useState("");
+  const [prediction, setPrediction] = useState(null);
+  const [marker, setMarker] = useState(null);
+
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: "AIzaSyAnurhZ7d1vZ3ai0jh64NebvzA-jliPWDU",
+  });
+
+  const handlePredict = async () => {
+    try {
+      const response = await axios.post("https://chlorophyll-api.onrender.com/predict", {
+        lat: parseFloat(latitude),
+        lon: parseFloat(longitude),
+      });
+      setPrediction(response.data);
+      setMarker({ lat: parseFloat(latitude), lng: parseFloat(longitude) });
+    } catch (error) {
+      console.error("Error fetching prediction:", error);
+    }
+  };
+
+  return (
+    <div>
+      <h1>Chlorophyll-a Model</h1>
+      <div>
+        <label>Longitude:</label>
+        <input
+          type="number"
+          value={longitude}
+          onChange={(e) => setLongitude(e.target.value)}
+        />
+        <label>Latitude:</label>
+        <input
+          type="number"
+          value={latitude}
+          onChange={(e) => setLatitude(e.target.value)}
+        />
+        <button onClick={handlePredict}>Predict</button>
+      </div>
+      {isLoaded && (
+        <GoogleMap mapContainerStyle={containerStyle} center={center} zoom={5}>
+          {marker && <Marker position={marker} />}
+        </GoogleMap>
+      )}
+      {prediction && (
+        <div>
+          <h3>Prediction Result Based on Sentinel 2:</h3>
+          <p>Date: {prediction.date}</p>
+          <p>Longitude: {longitude}</p>
+          <p>Latitude: {latitude}</p>
+          <p>Chlor-a Pred: {prediction.chlor_a} µg/L</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default App;
