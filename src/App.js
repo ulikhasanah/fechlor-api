@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
 import axios from "axios";
 
@@ -19,14 +19,31 @@ function App() {
   const [marker, setMarker] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [availableDates, setAvailableDates] = useState([]);
+  const [selectedDate, setSelectedDate] = useState("");
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: "AIzaSyAnurhZ7d1vZ3ai0jh64NebvzA-jliPWDU",
   });
 
+  useEffect(() => {
+    const fetchAvailableDates = async () => {
+      try {
+        const response = await axios.get("https://chlorophyll-api.onrender.com/dates");
+        if (response.status === 200 && response.data.dates) {
+          setAvailableDates(response.data.dates);
+          setSelectedDate(response.data.dates[0]);
+        }
+      } catch (error) {
+        setError("Failed to fetch available dates.");
+      }
+    };
+    fetchAvailableDates();
+  }, []);
+
   const handlePredict = async () => {
-    if (!latitude || !longitude) {
-      setError("Please enter valid latitude and longitude.");
+    if (!latitude || !longitude || !selectedDate) {
+      setError("Please enter valid latitude, longitude, and select a date.");
       return;
     }
 
@@ -40,14 +57,14 @@ function App() {
 
       const response = await axios.post(
         "https://chlorophyll-api.onrender.com/predict",
-        { lat: latNum, lon: lonNum },
+        { lat: latNum, lon: lonNum, date: selectedDate },
         { headers: { "Content-Type": "application/json" } }
       );
 
       if (response.status === 200 && response.data) {
         setPrediction({
           chlor_a: response.data["Chlorophyll-a"],
-          date: response.data.dates?.["Sentinel-2"] || "N/A",
+          date: selectedDate,
         });
         setMarker({ lat: latNum, lng: lonNum });
       } else {
@@ -79,6 +96,12 @@ function App() {
             <input type="number" step="0.000001" value={latitude} onChange={(e) => setLatitude(e.target.value)} style={{ width: "100%", padding: "5px" }} />
             <label>Longitude:</label>
             <input type="number" step="0.000001" value={longitude} onChange={(e) => setLongitude(e.target.value)} style={{ width: "100%", padding: "5px" }} />
+            <label>Select Date:</label>
+            <select value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} style={{ width: "100%", padding: "5px" }}>
+              {availableDates.map((date) => (
+                <option key={date} value={date}>{date}</option>
+              ))}
+            </select>
             <button onClick={handlePredict} disabled={loading} style={{ marginTop: "10px", padding: "10px", cursor: "pointer", backgroundColor: loading ? "#ccc" : "#007BFF", color: "white", border: "none", borderRadius: "5px", width: "100%" }}>
               {loading ? "Predicting..." : "Predict"}
             </button>
