@@ -22,7 +22,7 @@ function App() {
   const [error, setError] = useState("");
 
   const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: "YOUR_GOOGLE_MAPS_API_KEY",
+    googleMapsApiKey: "AIzaSyAnurhZ7d1vZ3ai0jh64NebvzA-jliPWDU",
   });
 
   const handlePredict = async () => {
