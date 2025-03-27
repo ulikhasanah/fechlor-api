@@ -1,157 +1,158 @@
-import React, { useState } from "react";
-import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
-import axios from "axios";
+import React, { useState } from 'react';
+import axios from 'axios';
 
-const containerStyle = {
-  width: "80%",
-  height: "950px",
-};
-
-const defaultCenter = {
-  lat: 16.1,
-  lng: 81.5,
-};
-
-function App() {
-  const [longitude, setLongitude] = useState("");
-  const [latitude, setLatitude] = useState("");
-  const [date, setDate] = useState("");
+const App = () => {
+  const [lat, setLat] = useState('');
+  const [lon, setLon] = useState('');
+  const [date, setDate] = useState('');
   const [prediction, setPrediction] = useState(null);
-  const [marker, setMarker] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [file, setFile] = useState(null);
-  const [uploadMessage, setUploadMessage] = useState("");
-  const [predicted, setPredicted] = useState(false);
+  const [csvResults, setCsvResults] = useState([]);
+  const [csvLoading, setCsvLoading] = useState(false);
+  const [csvError, setCsvError] = useState(null);
 
-  const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: "AIzaSyAnurhZ7d1vZ3ai0jh64NebvzA-jliPWDU",
-  });
-
-  const handlePredict = async () => {
-    if (!latitude || !longitude || !date) {
-      setError("Please enter valid latitude, longitude, and date.");
-      return;
-    }
-
-    setError("");
+  // Single prediction form submit handler
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setLoading(true);
-    setPrediction(null);
-    setPredicted(false);
+    setError(null);
 
     try {
-      const response = await axios.post(
-        "https://chlorophyll-api.onrender.com/predict",
-        { lat: parseFloat(latitude), lon: parseFloat(longitude), date },
-        { headers: { "Content-Type": "application/json" } }
-      );
+      const response = await axios.post('https://chlorophyll-api.onrender.com/predict', {
+        lat,
+        lon,
+        date,
+      });
 
-      if (response.status === 200 && response.data) {
-        setPrediction({
-          chlor_a: response.data["Chlorophyll-a"],
-          date: response.data.dates?.["Sentinel-2"] || "Closest Available",
-        });
-        setMarker({ lat: parseFloat(latitude), lng: parseFloat(longitude) });
-        setPredicted(true);
-      } else {
-        setError("Invalid response from server.");
-      }
-    } catch (error) {
-      setError(error.response?.data?.message || "Failed to get prediction.");
+      setPrediction(response.data);
+    } catch (err) {
+      setError('Error fetching prediction.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleMapClick = (event) => {
-    const clickedLat = event.latLng.lat();
-    const clickedLng = event.latLng.lng();
-    setLatitude(clickedLat.toFixed(6));
-    setLongitude(clickedLng.toFixed(6));
-    setMarker({ lat: clickedLat, lng: clickedLng });
+  // CSV file upload handler
+  const handleCsvChange = (e) => {
+    setFile(e.target.files[0]);
   };
 
-  const handleFileUpload = async (event) => {
-  const selectedFile = event.target.files[0];
-  if (!selectedFile) return;
+  const handleCsvSubmit = async (e) => {
+    e.preventDefault();
+    setCsvLoading(true);
+    setCsvError(null);
 
-  setFile(selectedFile);
-  setUploadMessage("Uploading...");
+    const formData = new FormData();
+    formData.append('file', file);
 
-  const formData = new FormData();
-  formData.append("file", selectedFile);  // 'file' is the expected field name
+    try {
+      const response = await axios.get('https://chlorophyll-api.onrender.com/upload', {
+        params: { file: formData },
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
 
-  try {
-    setLoading(true);
-    
-    const response = await axios.get(
-      `https://chlorophyll-api.onrender.com/upload`, 
-      {
-        headers: { 'accept': 'application/json' },
-        params: { file: formData },  // Passing the file as part of the request params
-      }
-    );
-    
-    setUploadMessage(response.data.message || "File uploaded successfully!");
-  } catch (error) {
-    console.error(error.response?.data);  // Log server response for debugging
-    setUploadMessage(error.response?.data?.message || "File upload failed.");
-  } finally {
-    setLoading(false);
-  }
-};
-
+      setCsvResults(response.data);
+    } catch (err) {
+      setCsvError('Error processing CSV file.');
+    } finally {
+      setCsvLoading(false);
+    }
+  };
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>Chlorophyll-a Prediction Model</h1>
-      <div style={{ display: "flex", gap: "20px" }}>
-        <div>
-          <div style={{ border: "1px solid #000", padding: "20px", width: "300px", borderRadius: "8px" }}>
-            <h2>Input Location</h2>
-            <label>Latitude:</label>
-            <input type="number" step="0.000001" value={latitude} onChange={(e) => setLatitude(e.target.value)} />
-            <label>Longitude:</label>
-            <input type="number" step="0.000001" value={longitude} onChange={(e) => setLongitude(e.target.value)} />
-            <label>Date:</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-            <button onClick={handlePredict} disabled={loading || predicted}>
-              {predicted ? "Predicted" : loading ? "Predicting..." : "Predict"}
-            </button>
-          </div>
+    <div className="App">
+      <h1>Chlorophyll-a Prediction</h1>
 
-          <div style={{ border: "1px solid #000", padding: "20px", width: "300px", borderRadius: "8px", marginTop: "20px" }}>
-            <h2>Upload Data File</h2>
-            <input type="file" accept=".csv,.xlsx" onChange={handleFileUpload} />
-            {uploadMessage && <p style={{ color: "green" }}>{uploadMessage}</p>}
+      {/* Individual Prediction Form */}
+      <div>
+        <h2>Single Prediction</h2>
+        <form onSubmit={handleSubmit}>
+          <div>
+            <label>Latitude: </label>
+            <input
+              type="number"
+              value={lat}
+              onChange={(e) => setLat(e.target.value)}
+              required
+            />
           </div>
+          <div>
+            <label>Longitude: </label>
+            <input
+              type="number"
+              value={lon}
+              onChange={(e) => setLon(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label>Date: </label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
+            />
+          </div>
+          <button type="submit" disabled={loading}>
+            {loading ? 'Loading...' : 'Get Prediction'}
+          </button>
+        </form>
 
-          {prediction && (
-            <div style={{ border: "1px solid #000", padding: "20px", width: "300px", borderRadius: "8px", marginTop: "20px" }}>
-              <h2>Prediction Result</h2>
-              <p><strong>Date:</strong> {prediction.date}</p>
-              <p><strong>Latitude:</strong> {latitude}</p>
-              <p><strong>Longitude:</strong> {longitude}</p>
-              <p><strong>Chlor-a Prediction:</strong> {prediction.chlor_a.toFixed(6)} µg/L</p>
-              <a
-                href={`data:text/csv;charset=utf-8,Date,Latitude,Longitude,Chlorophyll-a%0A${prediction.date},${latitude},${longitude},${prediction.chlor_a.toFixed(6)}`}
-                download="prediction_result.csv"
-                style={{ display: "block", marginTop: "10px", padding: "10px", backgroundColor: "#28a745", color: "white", textAlign: "center", borderRadius: "5px", textDecoration: "none" }}
-              >
-                Download Prediction
-              </a>
-            </div>
-          )}
-          {error && <p style={{ color: "red" }}>{error}</p>}
-        </div>
-        {isLoaded && (
-          <GoogleMap mapContainerStyle={containerStyle} center={marker || defaultCenter} zoom={5} onClick={handleMapClick}>
-            {marker && <Marker position={marker} />}
-          </GoogleMap>
+        {error && <p style={{ color: 'red' }}>{error}</p>}
+
+        {prediction && (
+          <div>
+            <h3>Prediction Result:</h3>
+            <p>Latitude: {prediction.lat}</p>
+            <p>Longitude: {prediction.lon}</p>
+            <p>Chlorophyll-a: {prediction["Chlorophyll-a"]} µg/L</p>
+            <p>SST Date: {prediction.sst_date}</p>
+            <p>Sentinel-2 Data Date: {prediction.dates["Sentinel-2"]}</p>
+          </div>
+        )}
+      </div>
+
+      {/* CSV Upload Form */}
+      <div>
+        <h2>CSV Upload</h2>
+        <form onSubmit={handleCsvSubmit}>
+          <div>
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleCsvChange}
+              required
+            />
+          </div>
+          <button type="submit" disabled={csvLoading}>
+            {csvLoading ? 'Processing...' : 'Upload CSV'}
+          </button>
+        </form>
+
+        {csvError && <p style={{ color: 'red' }}>{csvError}</p>}
+
+        {csvResults.length > 0 && (
+          <div>
+            <h3>CSV Prediction Results:</h3>
+            <ul>
+              {csvResults.map((result, index) => (
+                <li key={index}>
+                  <p>Latitude: {result.lat}</p>
+                  <p>Longitude: {result.lon}</p>
+                  <p>Chlorophyll-a: {result["Chlorophyll-a"]} µg/L</p>
+                  <p>SST Date: {result.sst_date}</p>
+                  <p>Sentinel-2 Data Date: {result.dates["Sentinel-2"]}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </div>
     </div>
   );
-}
+};
 
 export default App;
