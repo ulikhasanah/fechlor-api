@@ -15,7 +15,8 @@ function App() {
   const [error, setError] = useState("");
   const [predictions, setPredictions] = useState([]);
 
-  const { isLoaded } = useJsApiLoader({ googleMapsApiKey: "AIzaSyAnurhZ7d1vZ3ai0jh64NebvzA-jliPWDU" });
+  const { isLoaded } = useJsApiLoader({ googleMapsApiKey: "AIzaSyAnurhZ7d1vZ3ai0jh64NebvzA-jliPWDU
+" });
 
   const handlePredictSingle = async () => {
     const { lat, lon, date } = singleInput;
