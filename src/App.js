@@ -20,6 +20,9 @@ function App() {
   const [marker, setMarker] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [file, setFile] = useState(null);
+  const [uploadMessage, setUploadMessage] = useState("");
+  const [predicted, setPredicted] = useState(false);
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: "AIzaSyAnurhZ7d1vZ3ai0jh64NebvzA-jliPWDU",
@@ -34,11 +37,11 @@ function App() {
     setError("");
     setLoading(true);
     setPrediction(null);
+    setPredicted(false);
 
     try {
       const latNum = parseFloat(latitude);
       const lonNum = parseFloat(longitude);
-
       const response = await axios.post(
         "https://chlorophyll-api.onrender.com/predict",
         { lat: latNum, lon: lonNum, date },
@@ -51,6 +54,7 @@ function App() {
           date: response.data.dates?.["Sentinel-2"] || "Closest Available",
         });
         setMarker({ lat: latNum, lng: lonNum });
+        setPredicted(true);
       } else {
         setError("Invalid response from server.");
       }
@@ -69,6 +73,28 @@ function App() {
     setMarker({ lat: clickedLat, lng: clickedLng });
   };
 
+  const handleFileUpload = async (event) => {
+    const selectedFile = event.target.files[0];
+    if (!selectedFile) return;
+
+    setFile(selectedFile);
+    setUploadMessage("");
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+
+    try {
+      setLoading(true);
+      const response = await axios.post("https://chlorophyll-api.onrender.com/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setUploadMessage(response.data.message || "File uploaded successfully!");
+    } catch (error) {
+      setUploadMessage("File upload failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div style={{ padding: "20px" }}>
       <h1>Chlorophyll-a Prediction Model</h1>
@@ -82,10 +108,17 @@ function App() {
             <input type="number" step="0.000001" value={longitude} onChange={(e) => setLongitude(e.target.value)} style={{ width: "100%", padding: "5px" }} />
             <label>Date:</label>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ width: "100%", padding: "5px" }} />
-            <button onClick={handlePredict} disabled={loading} style={{ marginTop: "10px", padding: "10px", cursor: "pointer", backgroundColor: loading ? "#ccc" : "#007BFF", color: "white", border: "none", borderRadius: "5px", width: "100%" }}>
-              {loading ? "Predicting..." : "Predict"}
+            <button onClick={handlePredict} disabled={loading || predicted} style={{ marginTop: "10px", padding: "10px", cursor: "pointer", backgroundColor: predicted ? "#ccc" : "#007BFF", color: "white", border: "none", borderRadius: "5px", width: "100%" }}>
+              {predicted ? "Predicted" : loading ? "Predicting..." : "Predict"}
             </button>
           </div>
+
+          <div style={{ border: "1px solid #000", padding: "20px", width: "300px", borderRadius: "8px", marginTop: "20px" }}>
+            <h2>Upload Data File</h2>
+            <input type="file" accept=".csv,.xlsx" onChange={handleFileUpload} style={{ width: "100%" }} />
+            {uploadMessage && <p style={{ color: "green" }}>{uploadMessage}</p>}
+          </div>
+
           {prediction && (
             <div style={{ border: "1px solid #000", padding: "20px", width: "300px", borderRadius: "8px", marginTop: "20px" }}>
               <h2>Prediction Result</h2>
@@ -93,6 +126,9 @@ function App() {
               <p><strong>Latitude:</strong> {latitude}</p>
               <p><strong>Longitude:</strong> {longitude}</p>
               <p><strong>Chlor-a Prediction:</strong> {prediction.chlor_a.toFixed(6)} µg/L</p>
+              <a href={`data:text/csv;charset=utf-8,Date,Latitude,Longitude,Chlorophyll-a%0A${prediction.date},${latitude},${longitude},${prediction.chlor_a.toFixed(6)}`} download="prediction_result.csv" style={{ display: "block", marginTop: "10px", padding: "10px", backgroundColor: "#28a745", color: "white", textAlign: "center", borderRadius: "5px", textDecoration: "none" }}>
+                Download Prediction
+              </a>
             </div>
           )}
           {error && <p style={{ color: "red" }}>{error}</p>}
