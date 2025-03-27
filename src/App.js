@@ -72,28 +72,35 @@ function App() {
   };
 
   const handleFileUpload = async (event) => {
-    const selectedFile = event.target.files[0];
-    if (!selectedFile) return;
+  const selectedFile = event.target.files[0];
+  if (!selectedFile) return;
 
-    setFile(selectedFile);
-    setUploadMessage("Uploading...");
-    const formData = new FormData();
-    formData.append("file", selectedFile);
+  setFile(selectedFile);
+  setUploadMessage("Uploading...");
 
-    try {
-      setLoading(true);
-      const response = await axios.get(
-        "https://chlorophyll-api.onrender.com/upload",
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
-      setUploadMessage(response.data.message || "File uploaded successfully!");
-    } catch (error) {
-      setUploadMessage("File upload failed.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const formData = new FormData();
+  formData.append("file", selectedFile);  // 'file' is the expected field name
+
+  try {
+    setLoading(true);
+    
+    const response = await axios.get(
+      `https://chlorophyll-api.onrender.com/upload`, 
+      {
+        headers: { 'accept': 'application/json' },
+        params: { file: formData },  // Passing the file as part of the request params
+      }
+    );
+    
+    setUploadMessage(response.data.message || "File uploaded successfully!");
+  } catch (error) {
+    console.error(error.response?.data);  // Log server response for debugging
+    setUploadMessage(error.response?.data?.message || "File upload failed.");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div style={{ padding: "20px" }}>
