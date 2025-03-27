@@ -13,11 +13,10 @@ const defaultCenter = {
 };
 
 function App() {
-  const [longitude, setLongitude] = useState("");
-  const [latitude, setLatitude] = useState("");
-  const [date, setDate] = useState("");
+  const [mode, setMode] = useState("single"); // "single" or "multi"
+  const [coordinates, setCoordinates] = useState([{ lat: "", lon: "", date: "" }]);
   const [prediction, setPrediction] = useState(null);
-  const [marker, setMarker] = useState(null);
+  const [markers, setMarkers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -26,8 +25,8 @@ function App() {
   });
 
   const handlePredict = async () => {
-    if (!latitude || !longitude || !date) {
-      setError("Please enter valid latitude, longitude, and date.");
+    if (coordinates.some(coord => !coord.lat || !coord.lon || !coord.date)) {
+      setError("Please enter valid latitude, longitude, and date for all inputs.");
       return;
     }
 
@@ -36,21 +35,15 @@ function App() {
     setPrediction(null);
 
     try {
-      const latNum = parseFloat(latitude);
-      const lonNum = parseFloat(longitude);
-
       const response = await axios.post(
         "https://chlorophyll-api.onrender.com/predict",
-        { lat: latNum, lon: lonNum, date },
+        { coordinates },
         { headers: { "Content-Type": "application/json" } }
       );
 
       if (response.status === 200 && response.data) {
-        setPrediction({
-          chlor_a: response.data["Chlorophyll-a"],
-          date: response.data.dates?.["Sentinel-2"] || "Closest Available",
-        });
-        setMarker({ lat: latNum, lng: lonNum });
+        setPrediction(response.data);
+        setMarkers(coordinates.map(coord => ({ lat: parseFloat(coord.lat), lng: parseFloat(coord.lon) })));
       } else {
         setError("Invalid response from server.");
       }
@@ -62,47 +55,79 @@ function App() {
   };
 
   const handleMapClick = (event) => {
-    const clickedLat = event.latLng.lat();
-    const clickedLng = event.latLng.lng();
-    setLatitude(clickedLat.toFixed(6));
-    setLongitude(clickedLng.toFixed(6));
-    setMarker({ lat: clickedLat, lng: clickedLng });
+    if (mode === "single") {
+      setCoordinates([{ lat: event.latLng.lat().toFixed(6), lon: event.latLng.lng().toFixed(6), date: "" }]);
+    } else {
+      setCoordinates([...coordinates, { lat: event.latLng.lat().toFixed(6), lon: event.latLng.lng().toFixed(6), date: "" }]);
+    }
+    setMarkers([...markers, { lat: event.latLng.lat(), lng: event.latLng.lng() }]);
   };
 
   return (
     <div style={{ padding: "20px" }}>
       <h1>Chlorophyll-a Prediction Model</h1>
-      <div style={{ display: "flex", gap: "20px" }}>
-        <div>
-          <div style={{ border: "1px solid #000", padding: "20px", width: "300px", borderRadius: "8px" }}>
-            <h2>Input Location</h2>
+      <label>Mode:</label>
+      <select value={mode} onChange={(e) => setMode(e.target.value)}>
+        <option value="single">Single Coordinate</option>
+        <option value="multi">Multiple Coordinates</option>
+      </select>
+      <div style={{ border: "1px solid #000", padding: "20px", width: "400px", borderRadius: "8px", marginTop: "10px" }}>
+        <h2>Input Coordinates</h2>
+        {coordinates.map((coord, index) => (
+          <div key={index}>
             <label>Latitude:</label>
-            <input type="number" step="0.000001" value={latitude} onChange={(e) => setLatitude(e.target.value)} style={{ width: "100%", padding: "5px" }} />
+            <input
+              type="number"
+              step="0.000001"
+              value={coord.lat}
+              onChange={(e) => {
+                const newCoords = [...coordinates];
+                newCoords[index].lat = e.target.value;
+                setCoordinates(newCoords);
+              }}
+            />
             <label>Longitude:</label>
-            <input type="number" step="0.000001" value={longitude} onChange={(e) => setLongitude(e.target.value)} style={{ width: "100%", padding: "5px" }} />
+            <input
+              type="number"
+              step="0.000001"
+              value={coord.lon}
+              onChange={(e) => {
+                const newCoords = [...coordinates];
+                newCoords[index].lon = e.target.value;
+                setCoordinates(newCoords);
+              }}
+            />
             <label>Date:</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ width: "100%", padding: "5px" }} />
-            <button onClick={handlePredict} disabled={loading} style={{ marginTop: "10px", padding: "10px", cursor: "pointer", backgroundColor: loading ? "#ccc" : "#007BFF", color: "white", border: "none", borderRadius: "5px", width: "100%" }}>
-              {loading ? "Predicting..." : "Predict"}
-            </button>
+            <input
+              type="date"
+              value={coord.date}
+              onChange={(e) => {
+                const newCoords = [...coordinates];
+                newCoords[index].date = e.target.value;
+                setCoordinates(newCoords);
+              }}
+            />
           </div>
-          {prediction && (
-            <div style={{ border: "1px solid #000", padding: "20px", width: "300px", borderRadius: "8px", marginTop: "20px" }}>
-              <h2>Prediction Result</h2>
-              <p><strong>Date:</strong> {prediction.date}</p>
-              <p><strong>Latitude:</strong> {latitude}</p>
-              <p><strong>Longitude:</strong> {longitude}</p>
-              <p><strong>Chlor-a Prediction:</strong> {prediction.chlor_a.toFixed(6)} µg/L</p>
-            </div>
-          )}
-          {error && <p style={{ color: "red" }}>{error}</p>}
-        </div>
-        {isLoaded && (
-          <GoogleMap mapContainerStyle={containerStyle} center={marker || defaultCenter} zoom={5} onClick={handleMapClick}>
-            {marker && <Marker position={marker} />}
-          </GoogleMap>
-        )}
+        ))}
+        {mode === "multi" && <button onClick={() => setCoordinates([...coordinates, { lat: "", lon: "", date: "" }])}>Add More</button>}
+        <button onClick={handlePredict} disabled={loading} style={{ marginTop: "10px" }}>
+          {loading ? "Predicting..." : "Predict"}
+        </button>
       </div>
+      {prediction && (
+        <div style={{ border: "1px solid #000", padding: "20px", width: "400px", borderRadius: "8px", marginTop: "20px" }}>
+          <h2>Prediction Results</h2>
+          {prediction.map((pred, idx) => (
+            <p key={idx}><strong>Lat:</strong> {coordinates[idx].lat}, <strong>Lon:</strong> {coordinates[idx].lon}, <strong>Chlorophyll-a:</strong> {pred.chlor_a.toFixed(6)} µg/L</p>
+          ))}
+        </div>
+      )}
+      {error && <p style={{ color: "red" }}>{error}</p>}
+      {isLoaded && (
+        <GoogleMap mapContainerStyle={containerStyle} center={markers[0] || defaultCenter} zoom={5} onClick={handleMapClick}>
+          {markers.map((marker, idx) => <Marker key={idx} position={marker} />)}
+        </GoogleMap>
+      )}
     </div>
   );
 }
