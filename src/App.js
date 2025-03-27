@@ -2,98 +2,125 @@ import React, { useState } from "react";
 import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
 import axios from "axios";
 
-const containerStyle = { width: "100%", height: "600px" };
-const defaultCenter = { lat: 16.1, lng: 81.5 };
+const containerStyle = {
+  width: "80%",
+  height: "950px",
+};
+
+const defaultCenter = {
+  lat: 16.1,
+  lng: 81.5,
+};
 
 function App() {
-  const [mode, setMode] = useState("single");
-  const [singleInput, setSingleInput] = useState({ lat: "", lon: "", date: "" });
-  const [multiInputs, setMultiInputs] = useState([]);
-  const [markers, setMarkers] = useState([]);
+  const [coordinates, setCoordinates] = useState([]);
+  const [date, setDate] = useState("");
+  const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [prediction, setPrediction] = useState(null);
 
-  const { isLoaded } = useJsApiLoader({ googleMapsApiKey: "AIzaSyAnurhZ7d1vZ3ai0jh64NebvzA-jliPWDU" });
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: "AIzaSyAnurhZ7d1vZ3ai0jh64NebvzA-jliPWDU",
+  });
 
-  const handlePredictSingle = async () => {
+  const handleAddCoordinate = () => {
+    setCoordinates([...coordinates, { lat: "", lng: "" }]);
+  };
+
+  const handleCoordinateChange = (index, field, value) => {
+    const newCoordinates = [...coordinates];
+    newCoordinates[index][field] = value;
+    setCoordinates(newCoordinates);
+  };
+
+  const handlePredict = async () => {
+    if (!date || coordinates.length === 0 || coordinates.some(coord => !coord.lat || !coord.lng)) {
+      setError("Please enter valid coordinates and date.");
+      return;
+    }
+
     setError("");
     setLoading(true);
-    setPrediction(null);
+    setPredictions([]);
 
     try {
-      const response = await axios.post("https://chlorophyll-api.onrender.com/predict", singleInput, {
-        headers: { "Content-Type": "application/json" },
-      });
-      setPrediction(response.data);
-      setMarkers([{ lat: parseFloat(singleInput.lat), lng: parseFloat(singleInput.lon) }]);
-    } catch (err) {
-      setError("Failed to get prediction. Check console for details.");
-      console.error("Prediction Error:", err.response || err.message);
+      const formattedCoordinates = coordinates.map(coord => ({
+        lat: parseFloat(coord.lat),
+        lon: parseFloat(coord.lng),
+      }));
+
+      const response = await axios.post(
+        "https://chlorophyll-api.onrender.com/predict-multi",
+        { coordinates: formattedCoordinates, date },
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      if (response.status === 200 && response.data) {
+        setPredictions(response.data.predictions);
+      } else {
+        setError("Invalid response from server.");
+      }
+    } catch (error) {
+      setError(error.response?.data?.message || "Failed to get prediction.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePredictMulti = async () => {
-    if (multiInputs.length === 0) {
-      setError("Please add at least one coordinate.");
-      return;
-    }
-    setError("");
-    setLoading(true);
-    setPrediction(null);
-
-    try {
-      const response = await axios.post(
-        "https://chlorophyll-api.onrender.com/predict-multi",
-        { coordinates: multiInputs.map(({ lat, lon, date }) => ({ lat: parseFloat(lat), lon: parseFloat(lon), date })) },
-        { headers: { "Content-Type": "application/json" } }
-      );
-      setPrediction(response.data);
-      setMarkers(multiInputs.map(({ lat, lon }) => ({ lat: parseFloat(lat), lng: parseFloat(lon) })));
-    } catch (err) {
-      setError("Failed to get predictions. Check console for details.");
-      console.error("Prediction Error:", err.response || err.message);
-    } finally {
-      setLoading(false);
-    }
+  const handleMapClick = (event) => {
+    const clickedLat = event.latLng.lat();
+    const clickedLng = event.latLng.lng();
+    setCoordinates([...coordinates, { lat: clickedLat.toFixed(6), lng: clickedLng.toFixed(6) }]);
   };
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Chlorophyll-a Prediction Model</h1>
-      <button className="px-4 py-2 bg-blue-500 text-white rounded" onClick={() => setMode(mode === "single" ? "multi" : "single")}>
-        Switch to {mode === "single" ? "Multi-Coordinates Mode" : "Single-Coordinate Mode"}
-      </button>
-
-      {mode === "single" ? (
-        <div className="mt-4">
-          <input type="number" placeholder="Latitude" value={singleInput.lat} onChange={(e) => setSingleInput({ ...singleInput, lat: e.target.value })} className="border p-2 m-2 w-full" />
-          <input type="number" placeholder="Longitude" value={singleInput.lon} onChange={(e) => setSingleInput({ ...singleInput, lon: e.target.value })} className="border p-2 m-2 w-full" />
-          <input type="date" value={singleInput.date} onChange={(e) => setSingleInput({ ...singleInput, date: e.target.value })} className="border p-2 m-2 w-full" />
-          <button onClick={handlePredictSingle} className="px-4 py-2 bg-green-500 text-white rounded">Predict</button>
-        </div>
-      ) : (
-        <div className="mt-4">
-          <button onClick={handlePredictMulti} className="px-4 py-2 bg-green-500 text-white rounded" disabled={loading}>{loading ? "Predicting..." : "Predict"}</button>
-          {multiInputs.map((row, index) => (
-            <div key={index} className="flex gap-2 mt-2">
-              <input type="number" placeholder="Lat" value={row.lat} onChange={(e) => setMultiInputs(multiInputs.map((r, i) => i === index ? { ...r, lat: e.target.value } : r))} className="border p-2 w-1/3" />
-              <input type="number" placeholder="Lon" value={row.lon} onChange={(e) => setMultiInputs(multiInputs.map((r, i) => i === index ? { ...r, lon: e.target.value } : r))} className="border p-2 w-1/3" />
-              <input type="date" value={row.date} onChange={(e) => setMultiInputs(multiInputs.map((r, i) => i === index ? { ...r, date: e.target.value } : r))} className="border p-2 w-1/3" />
+    <div style={{ padding: "20px" }}>
+      <h1>Chlorophyll-a Prediction Model</h1>
+      <div style={{ display: "flex", gap: "20px" }}>
+        <div>
+          <div style={{ border: "1px solid #000", padding: "20px", width: "300px", borderRadius: "8px" }}>
+            <h2>Input Locations</h2>
+            {coordinates.map((coord, index) => (
+              <div key={index}>
+                <label>Latitude:</label>
+                <input type="number" step="0.000001" value={coord.lat} onChange={(e) => handleCoordinateChange(index, "lat", e.target.value)} style={{ width: "100%", padding: "5px" }} />
+                <label>Longitude:</label>
+                <input type="number" step="0.000001" value={coord.lng} onChange={(e) => handleCoordinateChange(index, "lng", e.target.value)} style={{ width: "100%", padding: "5px" }} />
+              </div>
+            ))}
+            <button onClick={handleAddCoordinate} style={{ marginTop: "10px", padding: "10px", cursor: "pointer", backgroundColor: "#28A745", color: "white", border: "none", borderRadius: "5px", width: "100%" }}>
+              Add Coordinate
+            </button>
+            <label>Date:</label>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ width: "100%", padding: "5px" }} />
+            <button onClick={handlePredict} disabled={loading} style={{ marginTop: "10px", padding: "10px", cursor: "pointer", backgroundColor: loading ? "#ccc" : "#007BFF", color: "white", border: "none", borderRadius: "5px", width: "100%" }}>
+              {loading ? "Predicting..." : "Predict"}
+            </button>
+          </div>
+          {predictions.length > 0 && (
+            <div style={{ border: "1px solid #000", padding: "20px", width: "300px", borderRadius: "8px", marginTop: "20px" }}>
+              <h2>Prediction Results</h2>
+              {predictions.map((pred, index) => (
+                <div key={index} style={{ marginBottom: "10px" }}>
+                  <p><strong>Coordinate {index + 1}:</strong></p>
+                  <p><strong>Date:</strong> {pred.date || "Closest Available"}</p>
+                  <p><strong>Latitude:</strong> {coordinates[index].lat}</p>
+                  <p><strong>Longitude:</strong> {coordinates[index].lng}</p>
+                  <p><strong>Chlor-a Prediction:</strong> {pred.chlor_a.toFixed(6)} µg/L</p>
+                </div>
+              ))}
             </div>
-          ))}
-          <button onClick={() => setMultiInputs([...multiInputs, { lat: "", lon: "", date: "" }])} className="px-4 py-2 bg-gray-500 text-white rounded mt-2">Add Row</button>
+          )}
+          {error && <p style={{ color: "red" }}>{error}</p>}
         </div>
-      )}
-
-      {error && <p className="text-red-500 mt-2">{error}</p>}
-      {prediction && <p className="text-green-500 mt-2">Prediction: {JSON.stringify(prediction)}</p>}
-
-      {isLoaded && <GoogleMap mapContainerStyle={containerStyle} center={markers.length ? markers[0] : defaultCenter} zoom={5}>
-        {markers.map((marker, index) => <Marker key={index} position={marker} />)}
-      </GoogleMap>}
+        {isLoaded && (
+          <GoogleMap mapContainerStyle={containerStyle} center={coordinates[0] || defaultCenter} zoom={5} onClick={handleMapClick}>
+            {coordinates.map((coord, index) => (
+              <Marker key={index} position={{ lat: parseFloat(coord.lat), lng: parseFloat(coord.lng) }} />
+            ))}
+          </GoogleMap>
+        )}
+      </div>
     </div>
   );
 }
