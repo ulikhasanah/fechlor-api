@@ -39,6 +39,27 @@ function App() {
     }
   };
 
+  const handlePredictMulti = async () => {
+    if (multiInputs.length === 0) {
+      setError("Please add at least one coordinate.");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    setPrediction(null);
+
+    try {
+      const response = await axios.post("https://chlorophyll-api.onrender.com/predict-multi", {
+        coordinates: multiInputs,
+      });
+      setPrediction(response.data);
+    } catch (err) {
+      setError("Failed to get predictions.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAddRow = () => {
     setMultiInputs([...multiInputs, { lon: "", lat: "", date: "" }]);
   };
@@ -56,10 +77,19 @@ function App() {
   const handleUpload = (event) => {
     const file = event.target.files[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onload = (e) => {
       const rows = e.target.result.split("\n").map((row) => row.split(","));
-      const formattedData = rows.slice(1).map(([lon, lat, date]) => ({ lon, lat, date }));
+      const formattedData = rows
+        .slice(1)
+        .map(([lat, lon, date]) => ({
+          lat: lat?.trim() || "",
+          lon: lon?.trim() || "",
+          date: date?.trim() || "",
+        }))
+        .filter((row) => row.lat && row.lon && row.date);
+
       setMultiInputs(formattedData);
     };
     reader.readAsText(file);
@@ -98,12 +128,19 @@ function App() {
         <div>
           <input type="file" accept=".csv" onChange={handleUpload} />
           <button onClick={handleAddRow}>Add Row</button>
+          <button onClick={handlePredictMulti} disabled={loading}>
+            {loading ? "Predicting..." : "Predict"}
+          </button>
+
+          {error && <p style={{ color: "red" }}>{error}</p>}
+
           <table>
             <thead>
               <tr>
-                <th>Longitude</th>
                 <th>Latitude</th>
+                <th>Longitude</th>
                 <th>Date</th>
+                <th>Chl-a Prediction</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -113,15 +150,15 @@ function App() {
                   <td>
                     <input
                       type="number"
-                      value={row.lon}
-                      onChange={(e) => handleInputChange(index, "lon", e.target.value)}
+                      value={row.lat}
+                      onChange={(e) => handleInputChange(index, "lat", e.target.value)}
                     />
                   </td>
                   <td>
                     <input
                       type="number"
-                      value={row.lat}
-                      onChange={(e) => handleInputChange(index, "lat", e.target.value)}
+                      value={row.lon}
+                      onChange={(e) => handleInputChange(index, "lon", e.target.value)}
                     />
                   </td>
                   <td>
@@ -131,6 +168,7 @@ function App() {
                       onChange={(e) => handleInputChange(index, "date", e.target.value)}
                     />
                   </td>
+                  <td>{prediction ? prediction[index]?.chl_a || "-" : "-"}</td>
                   <td>
                     <button onClick={() => handleRemoveRow(index)}>Delete</button>
                   </td>
