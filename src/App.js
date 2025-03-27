@@ -82,7 +82,7 @@ function App() {
 
     try {
       setLoading(true);
-      const response = await axios.post(
+      const response = await axios.get(
         "https://chlorophyll-api.onrender.com/upload",
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
