@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
 import axios from "axios";
+import Papa from "papaparse";
 
 const containerStyle = { width: "100%", height: "600px" };
 const defaultCenter = { lat: 16.1, lng: 81.5 };
@@ -12,7 +13,7 @@ function App() {
   const [markers, setMarkers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [predictions, setPredictions] = useState(null);
+  const [predictions, setPredictions] = useState([]);
 
   const { isLoaded } = useJsApiLoader({ googleMapsApiKey: "AIzaSyAnurhZ7d1vZ3ai0jh64NebvzA-jliPWDU" });
 
@@ -22,11 +23,11 @@ function App() {
     
     setError("");
     setLoading(true);
-    setPredictions(null);
+    setPredictions([]);
 
     try {
       const response = await axios.post("https://chlorophyll-api.onrender.com/predict", { lat, lon, date });
-      setPredictions([response.data]);
+      setPredictions([{ ...response.data, lat, lon }]);
       setMarkers([{ lat: parseFloat(lat), lng: parseFloat(lon) }]);
     } catch (err) {
       setError("Failed to get prediction.");
@@ -40,17 +41,36 @@ function App() {
     
     setError("");
     setLoading(true);
-    setPredictions(null);
+    setPredictions([]);
 
     try {
       const response = await axios.post("https://chlorophyll-api.onrender.com/predict-multi", { locations: multiInputs });
-      setPredictions(response.data);
+      setPredictions(response.data.map((pred, index) => ({ ...pred, ...multiInputs[index] })));
       setMarkers(multiInputs.map(({ lat, lon }) => ({ lat: parseFloat(lat), lng: parseFloat(lon) })));
     } catch (err) {
       setError("Failed to get predictions.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (result) => {
+        const formattedData = result.data.map(row => ({
+          lat: row.lat,
+          lon: row.lon,
+          date: row.date
+        }));
+        setMultiInputs(formattedData);
+      },
+      error: () => setError("Failed to read the CSV file.")
+    });
   };
 
   return (
@@ -69,6 +89,7 @@ function App() {
         </div>
       ) : (
         <div>
+          <input type="file" accept=".csv" onChange={handleFileUpload} />
           <button onClick={handlePredictMulti} disabled={loading}>{loading ? "Predicting..." : "Predict Multi"}</button>
           <ul>
             {multiInputs.map((input, index) => (
@@ -79,9 +100,16 @@ function App() {
       )}
       
       {error && <p style={{ color: "red" }}>{error}</p>}
-      {predictions && predictions.map((pred, index) => (
-        <p key={index}>Prediction: {pred.chl_a}</p>
-      ))}
+      {predictions.length > 0 && (
+        <div style={{ marginTop: "20px", padding: "10px", border: "1px solid #ccc", borderRadius: "5px" }}>
+          <h2>Predictions</h2>
+          <ul>
+            {predictions.map((pred, index) => (
+              <li key={index}>Lat: {pred.lat}, Lon: {pred.lon} - Chlorophyll-a: {pred.chl_a}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       
       {isLoaded && (
         <GoogleMap mapContainerStyle={containerStyle} center={defaultCenter} zoom={5}>
