@@ -17,21 +17,19 @@ function App() {
   const { isLoaded } = useJsApiLoader({ googleMapsApiKey: "AIzaSyAnurhZ7d1vZ3ai0jh64NebvzA-jliPWDU" });
 
   const handlePredictSingle = async () => {
-    const { lat, lon, date } = singleInput;
-    if (!lat || !lon || !date) {
-      setError("Please enter valid latitude, longitude, and date.");
-      return;
-    }
     setError("");
     setLoading(true);
     setPrediction(null);
 
     try {
-      const response = await axios.post("https://chlorophyll-api.onrender.com/predict", { lat, lon, date });
+      const response = await axios.post("https://chlorophyll-api.onrender.com/predict", singleInput, {
+        headers: { "Content-Type": "application/json" },
+      });
       setPrediction(response.data);
-      setMarkers([{ lat: parseFloat(lat), lng: parseFloat(lon) }]);
+      setMarkers([{ lat: parseFloat(singleInput.lat), lng: parseFloat(singleInput.lon) }]);
     } catch (err) {
-      setError("Failed to get prediction.");
+      setError("Failed to get prediction. Check console for details.");
+      console.error("Prediction Error:", err.response || err.message);
     } finally {
       setLoading(false);
     }
@@ -47,11 +45,16 @@ function App() {
     setPrediction(null);
 
     try {
-      const response = await axios.post("https://chlorophyll-api.onrender.com/predict-multi", { coordinates: multiInputs });
+      const response = await axios.post(
+        "https://chlorophyll-api.onrender.com/predict-multi",
+        { coordinates: multiInputs.map(({ lat, lon, date }) => ({ lat: parseFloat(lat), lon: parseFloat(lon), date })) },
+        { headers: { "Content-Type": "application/json" } }
+      );
       setPrediction(response.data);
       setMarkers(multiInputs.map(({ lat, lon }) => ({ lat: parseFloat(lat), lng: parseFloat(lon) })));
     } catch (err) {
-      setError("Failed to get predictions.");
+      setError("Failed to get predictions. Check console for details.");
+      console.error("Prediction Error:", err.response || err.message);
     } finally {
       setLoading(false);
     }
@@ -87,7 +90,7 @@ function App() {
 
       {error && <p className="text-red-500 mt-2">{error}</p>}
       {prediction && <p className="text-green-500 mt-2">Prediction: {JSON.stringify(prediction)}</p>}
-      
+
       {isLoaded && <GoogleMap mapContainerStyle={containerStyle} center={markers.length ? markers[0] : defaultCenter} zoom={5}>
         {markers.map((marker, index) => <Marker key={index} position={marker} />)}
       </GoogleMap>}
