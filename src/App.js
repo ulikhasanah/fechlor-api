@@ -78,43 +78,58 @@ function App() {
   };
 
   const handleFileUpload = async () => {
-    if (!file) {
-      setError("Please select a file to upload.");
-      return;
+  if (!file) {
+    setError("Please select a file to upload.");
+    return;
+  }
+  setLoading(true);
+  setError("");
+  const formData = new FormData();
+  formData.append("file", file);
+  
+  try {
+    const response = await axios.post("https://chlorophyll-api.onrender.com/upload", formData);
+    console.log("API Response:", response.data); // Debugging
+    
+    if (response.status === 200 && Array.isArray(response.data)) {
+      setCsvData(response.data);  //
+    } else {
+      setError("Failed to process file. Invalid response format.");
     }
-    setLoading(true);
-    setError("");
-    const formData = new FormData();
-    formData.append("file", file);
-    try {
-      const response = await axios.post("https://chlorophyll-api.onrender.com/upload", formData);
-      if (response.status === 200 && response.data.results) {
-        setCsvData(response.data.results);
-      } else {
-        setError("Failed to process file.");
-      }
-    } catch (error) {
-      setError(error.response?.data?.message || "Failed to upload file.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (error) {
+    console.error("Upload Error:", error);
+    setError(error.response?.data?.message || "Failed to upload file.");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleDownloadCSV = () => {
-    if (csvData.length === 0) {
-      setError("No data available for download.");
-      return;
-    }
-    const csv = Papa.unparse(csvData);
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "prediction_results.csv";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
+  if (csvData.length === 0) {
+    setError("No data available for download.");
+    return;
+  }
+
+  // Sesuaikan format CSV agar mengikuti struktur data API
+  const formattedCsvData = csvData.map(item => ({
+    lat: item.lat,
+    lon: item.lon,
+    "chlorophyll-a": item["Chlorophyll-a"],
+    "date_sentinel": item.dates?.["Sentinel-2"] || "N/A",
+    "date_sst": item.sst_date || "N/A"
+  }));
+
+  const csv = Papa.unparse(formattedCsvData);
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "prediction_results.csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+};
 
   return (
     <div style={{ padding: "20px" }}>
