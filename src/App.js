@@ -105,8 +105,8 @@ function App() {
           <div style={{ border: "1px solid #000", padding: "20px", width: "320px", borderRadius: "10px" }}>
             <h2>Input Location</h2>
             <label>Latitude:</label>
-            <input type="number" value={latitude} onChange={(e) => setLatitude(e.target.value)}
-	    style={{ width: "100%", padding: "8px", marginBottom: "10px", borderRadius: "5px"/>
+            <input type="number" value={latitude} onChange={(e) => 
+setLatitude(e.target.value)}/>
             <label>Longitude:</label>
             <input type="number" value={longitude} onChange={(e) => setLongitude(e.target.value)} />
             <label>Date:</label>
