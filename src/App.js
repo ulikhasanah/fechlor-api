@@ -102,7 +102,7 @@ function App() {
       <h1>Chlorophyll-a Prediction Model</h1>
       <div style={{ display: "flex", gap: "20px" }}>
         <div>
-          <div style={{ border: "1px solid #000", padding: "20px", width: "300px", borderRadius: "8px" }}>
+          <div style={{ border: "1px solid #000", padding: "18px", width: "300px", borderRadius: "8px" }}>
             <h2>Input Location</h2>
             <label>Latitude:</label>
             <input type="number" value={latitude} onChange={(e) => setLatitude(e.target.value)} />
