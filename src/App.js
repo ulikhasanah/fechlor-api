@@ -116,7 +116,7 @@ function App() {
                 <h3>Prediction Result:</h3>
                 <p>Chlorophyll-a: {prediction["Chlorophyll-a"]} µg/L</p>
                 <p>Date (Sentinel-2): {prediction.dates?.["Sentinel-2"] || "Closest Available"}</p>
-                <p>Date (SST): {prediction.dates?.["SST"] || "Closest Available"}</p>
+                <p>Date (SST): {prediction.sst_date || "Closest Available"}</p>
               </div>
             )}
           </div>
