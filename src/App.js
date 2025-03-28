@@ -28,7 +28,6 @@ function App() {
     }
     setError("");
     setLoading(true);
-    setPrediction(null);
     try {
       const response = await axios.post("https://chlorophyll-api.onrender.com/predict", {
         lat: parseFloat(latitude),
@@ -38,16 +37,6 @@ function App() {
       if (response.status === 200 && response.data) {
         setPrediction(response.data);
         setMarker({ lat: parseFloat(latitude), lng: parseFloat(longitude) });
-        setCsvData((prevData) => [
-          ...prevData,
-          {
-            lat: latitude,
-            lon: longitude,
-            "chlorophyll-a": response.data["Chlorophyll-a"],
-            "date_sentinel": response.data.dates?.["Sentinel-2"] || "Closest Available",
-            "date_sst": response.data.dates?.["SST"] || "Closest Available",
-          },
-        ]);
       } else {
         setError("Invalid response from server.");
       }
@@ -56,14 +45,6 @@ function App() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleMapClick = (event) => {
-    const clickedLat = event.latLng.lat();
-    const clickedLng = event.latLng.lng();
-    setLatitude(clickedLat.toFixed(6));
-    setLongitude(clickedLng.toFixed(6));
-    setMarker({ lat: clickedLat, lng: clickedLng });
   };
 
   const handleFileChange = (e) => {
@@ -130,6 +111,14 @@ function App() {
             <label>Date:</label>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             <button onClick={handlePredict} disabled={loading}>{loading ? "Predicting..." : "Predict"}</button>
+            {prediction && (
+              <div>
+                <h3>Prediction Result:</h3>
+                <p>Chlorophyll-a: {prediction["Chlorophyll-a"]} µg/L</p>
+                <p>Date (Sentinel-2): {prediction.dates?.["Sentinel-2"] || "Closest Available"}</p>
+                <p>Date (SST): {prediction.dates?.["SST"] || "Closest Available"}</p>
+              </div>
+            )}
           </div>
           <div style={{ marginTop: "20px" }}>
             <h2>Upload CSV File</h2>
@@ -142,7 +131,7 @@ function App() {
           {error && <p style={{ color: "red" }}>{error}</p>}
         </div>
         {isLoaded && (
-          <GoogleMap mapContainerStyle={containerStyle} center={marker || defaultCenter} zoom={5} onClick={handleMapClick}>
+          <GoogleMap mapContainerStyle={containerStyle} center={marker || defaultCenter} zoom={5}>
             {marker && <Marker position={marker} />}
           </GoogleMap>
         )}
