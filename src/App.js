@@ -67,7 +67,14 @@ function App() {
   };
 
   const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
+    const selectedFile = e.target.files[0];
+    if (selectedFile && selectedFile.type === "text/csv") {
+      setFile(selectedFile);
+      setError("");
+    } else {
+      setError("Please upload a valid CSV file.");
+      setFile(null);
+    }
   };
 
   const handleFileUpload = async () => {
@@ -126,15 +133,6 @@ function App() {
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             <button onClick={handlePredict} disabled={loading}>{loading ? "Predicting..." : "Predict"}</button>
           </div>
-          {prediction && (
-            <div style={{ border: "1px solid #000", padding: "20px", marginTop: "20px" }}>
-              <h2>Prediction Result</h2>
-              <p><strong>Date:</strong> {prediction.date}</p>
-              <p><strong>Latitude:</strong> {latitude}</p>
-              <p><strong>Longitude:</strong> {longitude}</p>
-              <p><strong>Chlor-a Prediction:</strong> {prediction.chlor_a.toFixed(6)} µg/L</p>
-            </div>
-          )}
           <div style={{ marginTop: "20px" }}>
             <h2>Upload CSV File</h2>
             <input type="file" accept=".csv" onChange={handleFileChange} />
