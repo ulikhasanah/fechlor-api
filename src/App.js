@@ -3,15 +3,8 @@ import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
 import axios from "axios";
 import Papa from "papaparse";
 
-const containerStyle = {
-  width: "80%",
-  height: "950px",
-};
-
-const defaultCenter = {
-  lat: 16.1,
-  lng: 81.5,
-};
+const containerStyle = { width: "80%", height: "950px" };
+const defaultCenter = { lat: 16.1, lng: 81.5 };
 
 function App() {
   const [longitude, setLongitude] = useState("");
@@ -87,9 +80,7 @@ function App() {
     const formData = new FormData();
     formData.append("file", file);
     try {
-      const response = await axios.post("https://chlorophyll-api.onrender.com/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const response = await axios.post("https://chlorophyll-api.onrender.com/upload", formData);
       if (response.status === 200 && response.data.results) {
         setCsvData(response.data.results);
       } else {
