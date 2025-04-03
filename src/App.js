@@ -98,11 +98,11 @@ function App() {
   };
 
   return (
-    <div style={{ padding: "20px" }}>
+    <div style={{ padding: "10px" }}>
       <h1>Chlorophyll-a Prediction Model</h1>
       <div style={{ display: "flex", gap: "10px" }}>
         <div>
-          <div style={{ border: "1px solid #000", padding: "10px", width: "320px", borderRadius: "10px" }}>
+          <div style={{ border: "1px solid #000", padding: "10px", width: "300px", borderRadius: "10px" }}>
             <h2>Input Location</h2>
             <label>Latitude:</label>
             <input type="number" value={latitude} onChange={(e) => 
