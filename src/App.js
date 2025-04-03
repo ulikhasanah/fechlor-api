@@ -106,13 +106,13 @@ function App() {
             <h2>Input Location</h2>
             <label>Latitude:</label>
             <input type="number" value={latitude} onChange={(e) => setLatitude(e.target.value)}
-		style={{ width: "90%", padding: "8px", fontSize: "16px", marginBottom: "8px"}}/>
+		style={{ width: "95%", padding: "8px", fontSize: "16px", marginBottom: "8px"}}/>
             <label>Longitude:</label>
             <input type="number" value={longitude} onChange={(e) => setLongitude(e.target.value)} 
-		style={{ width: "90%", padding: "8px", fontSize: "16px", marginBottom: "8px"}}/>
+		style={{ width: "95%", padding: "8px", fontSize: "16px", marginBottom: "8px"}}/>
             <label>Date:</label>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} 
-		style={{ width: "90%", padding: "8px", fontSize: "16px", marginBottom: "8px"}}/>
+		style={{ width: "95%", padding: "8px", fontSize: "16px", marginBottom: "8px"}}/>
             <button onClick={handlePredict} disabled={loading}>{loading ? "Predicting..." : "Predict"}</button>
             {prediction && (
               <div>
@@ -126,7 +126,7 @@ function App() {
           <div style={{ marginTop: "10px" }}>
             <h2>Upload CSV File</h2>
             <input type="file" accept=".csv" onChange={handleFileChange} 
-		style={{ width: "90%", padding: "8px", fontSize: "16px", marginBottom: "8px"}}/>
+		style={{ width: "95%", padding: "8px", fontSize: "16px", marginBottom: "8px"}}/>
             <button onClick={handleFileUpload} disabled={loading}>{loading ? "Uploading..." : "Upload File"}</button>
           </div>
           {csvData.length > 0 && (
