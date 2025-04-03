@@ -100,9 +100,9 @@ function App() {
   return (
     <div style={{ padding: "20px" }}>
       <h1>Chlorophyll-a Prediction Model</h1>
-      <div style={{ display: "flex", gap: "20px" }}>
+      <div style={{ display: "flex", gap: "10px" }}>
         <div>
-          <div style={{ border: "1px solid #000", padding: "20px", width: "320px", borderRadius: "10px" }}>
+          <div style={{ border: "1px solid #000", padding: "10px", width: "320px", borderRadius: "10px" }}>
             <h2>Input Location</h2>
             <label>Latitude:</label>
             <input type="number" value={latitude} onChange={(e) => 
@@ -121,7 +121,7 @@ setLatitude(e.target.value)}/>
               </div>
             )}
           </div>
-          <div style={{ marginTop: "20px" }}>
+          <div style={{ marginTop: "10px" }}>
             <h2>Upload CSV File</h2>
             <input type="file" accept=".csv" onChange={handleFileChange} />
             <button onClick={handleFileUpload} disabled={loading}>{loading ? "Uploading..." : "Upload File"}</button>
