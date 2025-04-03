@@ -125,7 +125,8 @@ function App() {
           </div>
           <div style={{ marginTop: "10px" }}>
             <h2>Upload CSV File</h2>
-            <input type="file" accept=".csv" onChange={handleFileChange} />
+            <input type="file" accept=".csv" onChange={handleFileChange} 
+		style={{ width: "90%", padding: "8px", fontSize: "16px", marginBottom: "8px"}}/>
             <button onClick={handleFileUpload} disabled={loading}>{loading ? "Uploading..." : "Upload File"}</button>
           </div>
           {csvData.length > 0 && (
