@@ -106,13 +106,13 @@ function App() {
             <h2>Input Location</h2>
             <label>Latitude:</label>
             <input type="number" value={latitude} onChange={(e) => setLatitude(e.target.value)}
-		style={{ width: "100%", padding: "8px", fontSize: "16px", marginBottom: "8px"}}/>
+		style={{ width: "80%", padding: "8px", fontSize: "16px", marginBottom: "8px"}}/>
             <label>Longitude:</label>
             <input type="number" value={longitude} onChange={(e) => setLongitude(e.target.value)} 
-		style={{ width: "100%", padding: "8px", fontSize: "16px", marginBottom: "8px"}}/>
+		style={{ width: "80%", padding: "8px", fontSize: "16px", marginBottom: "8px"}}/>
             <label>Date:</label>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} 
-		style={{ width: "100%", padding: "8px", fontSize: "16px", marginBottom: "8px"}}/>
+		style={{ width: "80%", padding: "8px", fontSize: "16px", marginBottom: "8px"}}/>
             <button onClick={handlePredict} disabled={loading}>{loading ? "Predicting..." : "Predict"}</button>
             {prediction && (
               <div>
